@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>Sprint Gate</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    
+    body {
+      background: #121212;
+      color: #ffffff;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .screen { display: none; flex-direction: column; height: 100%; width: 100%; }
+    .screen.active { display: flex; }
+
+    /* Top Navigation Bar */
+    .nav-bar {
+      height: 55px; background: #1a1a1a; display: flex; align-items: center; justify-content: center;
+      position: relative; border-bottom: 2px solid #333; flex-shrink: 0;
+    }
+    .nav-title { font-size: 18px; font-weight: 800; letter-spacing: 2px; }
+    .back-btn { position: absolute; left: 15px; background: none; border: none; color: #007aff; font-size: 16px; font-weight: bold; cursor: pointer; }
+    .premium-badge { position: absolute; right: 15px; background: #ffcc00; color: #000; font-size: 10px; font-weight: 900; padding: 3px 6px; border-radius: 4px; display: none; }
+
+    /* --- HOME SCREEN --- */
+    #homeScreen { justify-content: center; align-items: center; padding: 20px; gap: 20px; }
+    .home-logo { font-size: 40px; font-weight: 900; text-align: center; margin-bottom: 20px; color: #fff; text-shadow: 0 4px 10px rgba(0,0,0,0.5); }
+    .home-btn { width: 100%; max-width: 320px; padding: 20px; font-size: 18px; font-weight: 800; text-transform: uppercase; border: none; border-radius: 12px; color: #fff; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.4); display: flex; justify-content: center; align-items: center; gap: 10px; }
+    .home-btn:active { transform: scale(0.97); }
+    .btn-primary { background: #007aff; }
+    .btn-secondary { background: #333; border: 1px solid #555; }
+    .lock-icon { font-size: 14px; color: #ffcc00; }
+
+    /* --- SESSION SCREEN (Timer & Camera) --- */
+    #statusArea { height: 14%; background: #1a1a1a; display: flex; flex-direction: column; justify-content: center; align-items: center; border-bottom: 2px solid #333; }
+    #statusBadge { font-size: 16px; font-weight: 700; letter-spacing: 2px; color: #ffffff; }
+    #timerDisplay { font-size: 46px; font-weight: 800; font-family: monospace; }
+    
+    #cameraArea { height: 32%; background: #000; position: relative; overflow: hidden; display: flex; justify-content: center; align-items: center; border-bottom: 2px solid #333; }
+    #sourceVideo { width: 100%; height: 100%; object-fit: cover; }
+    #gateOverlay { position: absolute; top: 0; bottom: 0; left: 42.5%; width: 15%; background: rgba(255, 59, 48, 0.2); border-left: 2px dashed #ff3b30; border-right: 2px dashed #ff3b30; transition: background 0.1s ease; pointer-events: none; }
+    #gateOverlay.triggered-finish { background: rgba(52, 199, 89, 0.4); border-color: #34c759; }
+    #gateOverlay.triggered-lap { background: rgba(255, 204, 0, 0.4); border-color: #ffcc00; }
+    
+    #controlsArea { flex: 1; background: #1a1a1a; display: flex; flex-direction: column; padding: 10px 14px; gap: 10px; overflow-y: auto; }
+    
+    .input-row { display: flex; justify-content: space-between; gap: 10px; }
+    .input-group { flex: 1; display: flex; flex-direction: column; align-items: center; background: #222; padding: 6px; border-radius: 8px; position: relative;}
+    .input-group label { font-size: 11px; color: #aaa; margin-bottom: 2px; font-weight: 700; text-transform: uppercase; }
+    .input-group input { width: 100%; padding: 4px; font-size: 18px; font-weight: 700; text-align: center; background: #333; border: 1px solid #444; color: #fff; border-radius: 6px; }
+    .premium-blocker { position: absolute; inset: 0; z-index: 5; }
+
+    #buttonRow { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; }
+    .action-btn { padding: 12px; font-weight: 800; text-transform: uppercase; border: none; border-radius: 8px; color: #fff; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.4); }
+    .action-btn:active { transform: scale(0.97); }
+    .action-btn:disabled { background: #444 !important; color: #888 !important; box-shadow: none; }
+    #startBtn { grid-column: span 2; background: #007aff; font-size: 20px; padding: 14px; }
+    .secondary-btn { font-size: 14px; padding: 12px 8px; }
+    #newSessionBtn { background: #ff9500; }
+    #resetBtn { background: #ff3b30; }
+
+    /* Session Log & Renaming */
+    #sessionLogContainer { flex: 1; background: #000; border-radius: 8px; border: 1px solid #333; display: flex; flex-direction: column; overflow: hidden; min-height: 120px; }
+    .session-header { background: #111; padding: 8px 12px; display: flex; align-items: center; border-bottom: 1px solid #222; position: relative; }
+    .session-name-input { background: transparent; border: none; color: #fff; font-size: 14px; font-weight: bold; flex: 1; margin-right: 10px; }
+    .session-name-input:focus { outline: none; border-bottom: 1px solid #007aff; }
+    
+    #sessionLog { flex: 1; padding: 8px; overflow-y: auto; font-family: monospace; font-size: 13px; }
+    
+    .run-block { background: #1a1a1a; border: 1px solid #222; border-radius: 6px; padding: 8px; margin-bottom: 8px; position: relative; }
+    .run-block:last-child { margin-bottom: 0; }
+    .delete-run-btn { position: absolute; top: 6px; right: 8px; background: none; border: none; font-size: 16px; cursor: pointer; color: #888; display: none; } 
+    .delete-run-btn:active { transform: scale(0.9); }
+    
+    .log-item { display: flex; justify-content: space-between; padding: 3px 0; border-bottom: 1px solid #222; }
+    .log-item:last-child { border-bottom: none; }
+    .log-header { color: #007aff; font-weight: bold; border-bottom: 1px solid #222; margin-bottom: 4px; padding-bottom: 6px; }
+    .log-final { color: #34c759; font-weight: bold; margin-top: 4px; }
+    .log-lap { color: #ffcc00; }
+
+    /* --- HISTORY SCREEN --- */
+    #historyContainer { padding: 16px; flex: 1; overflow-y: auto; }
+    .history-card { background: #1a1a1a; border-radius: 10px; margin-bottom: 16px; border: 1px solid #333; overflow: hidden; }
+    .history-card-header { background: #222; padding: 12px; border-bottom: 1px solid #333; border-left: 4px solid #007aff; display: flex; justify-content: space-between; align-items: center; }
+    .history-session-info { flex: 1; }
+    .history-session-name { font-size: 16px; font-weight: 800; color: #fff; margin-bottom: 4px; }
+    .history-date { font-size: 12px; color: #aaa; }
+    .delete-session-btn { background: none; border: none; font-size: 18px; cursor: pointer; color: #888; padding: 4px; }
+    .delete-session-btn:active { transform: scale(0.9); }
+    
+    .history-runs-list { padding: 8px 12px; }
+    .history-run-item { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #222; font-size: 14px; font-weight: bold; }
+    .history-run-item:last-child { border-bottom: none; }
+    .history-run-item .run-num { color: #007aff; width: 60px; }
+    .history-run-item .run-passes { color: #aaa; flex: 1; text-align: center; font-weight: normal;}
+    .history-run-item .run-time { color: #34c759; width: 70px; text-align: right; }
+    #noHistoryMsg { text-align: center; color: #888; margin-top: 40px; font-style: italic; }
+
+    /* --- MODALS --- */
+    #premiumModal, #exitModal { position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 100; display: none; justify-content: center; align-items: center; padding: 20px; }
+    .modal-content { background: #1e1e1e; width: 100%; max-width: 320px; border-radius: 16px; padding: 24px; text-align: center; border: 1px solid #333; }
+    .modal-title { font-size: 22px; font-weight: 800; color: #ffcc00; margin-bottom: 12px; }
+    .modal-text { font-size: 15px; color: #ccc; margin-bottom: 24px; line-height: 1.4; }
+    .modal-btn { width: 100%; padding: 14px; font-size: 16px; font-weight: bold; border-radius: 8px; border: none; cursor: pointer; margin-bottom: 10px; }
+    .buy-btn { background: #ffcc00; color: #000; }
+    .cancel-btn { background: transparent; color: #888; }
+  </style>
+</head>
+<body>
+
+  <canvas id="processingCanvas" width="160" height="120" style="display:none;"></canvas>
+
+  <div id="homeScreen" class="screen active">
+    <div class="home-logo" onclick="togglePremiumTest()">SPRINT GATE</div>
+    <div class="premium-badge" id="homePremiumBadge">PRO</div>
+    
+    <button class="home-btn btn-primary" onclick="navTo('session')">Start Session</button>
+    <button class="home-btn btn-secondary" onclick="handleHistoryNav()">
+      View Saved Times <span class="lock-icon" id="historyLock">🔒</span>
+    </button>
+  </div>
+
+  <div id="sessionScreen" class="screen">
+    <div class="nav-bar">
+      <button class="back-btn" onclick="handleSessionBack()">❮ Back</button>
+      <div class="nav-title">TIMER</div>
+      <div class="premium-badge" id="sessionPremiumBadge">PRO</div>
+    </div>
+
+    <div id="statusArea">
+      <div id="statusBadge">READY</div>
+      <div id="timerDisplay">0.000s</div>
+    </div>
+
+    <div id="cameraArea">
+      <video id="sourceVideo" playsinline autoplay muted></video>
+      <div id="gateOverlay"></div>
+    </div>
+
+    <div id="controlsArea">
+      <div class="input-row">
+        <div class="input-group">
+          <label>Setup Delay (s)</label>
+          <input type="number" id="delayInput" value="10" min="2" max="60" />
+        </div>
+        <div class="input-group">
+          <label>Target Passes <span class="lock-icon" id="passesLock">🔒</span></label>
+          <input type="number" id="passesInput" value="1" readonly />
+          <div class="premium-blocker" id="passesBlocker" onclick="showPremiumModal('Target Passes')"></div>
+        </div>
+      </div>
+
+      <div id="buttonRow">
+        <button id="startBtn" class="action-btn">START</button>
+        <button id="newSessionBtn" class="action-btn secondary-btn">NEW SESSION</button>
+        <button id="resetBtn" class="action-btn secondary-btn">RESET</button>
+      </div>
+
+      <div id="sessionLogContainer">
+        <div class="session-header">
+          <input type="text" id="sessionNameInput" class="session-name-input" value="Running Session" readonly maxlength="25" />
+          <span class="lock-icon" id="sessionNameLock">🔒</span>
+          <div class="premium-blocker" id="sessionNameBlocker" onclick="showPremiumModal('Custom Session Names')"></div>
+        </div>
+        <div id="sessionLog"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="historyScreen" class="screen">
+    <div class="nav-bar">
+      <button class="back-btn" onclick="navTo('home')">❮ Back</button>
+      <div class="nav-title">SAVED TIMES</div>
+    </div>
+    <div id="historyContainer"></div>
+  </div>
+
+  <div id="premiumModal">
+    <div class="modal-content">
+      <div class="modal-title">Unlock Premium</div>
+      <div class="modal-text" id="modalText">Upgrade to Pro to unlock this feature!</div>
+      <button class="modal-btn buy-btn" onclick="mockPurchase()">Upgrade for $2.99</button>
+      <button class="modal-btn cancel-btn" onclick="hidePremiumModal()">Not Now</button>
+    </div>
+  </div>
+
+  <div id="exitModal">
+    <div class="modal-content">
+      <div class="modal-title">Session Not Saved!</div>
+      <div class="modal-text">Your workout times will be lost! Upgrade to Pro to save all your sessions permanently.</div>
+      <button class="modal-btn buy-btn" onclick="mockPurchase()">Upgrade for $2.99</button>
+      <button class="modal-btn cancel-btn" style="color: #ff3b30;" onclick="forceExit()">Exit Without Saving</button>
+      <button class="modal-btn cancel-btn" onclick="hideExitModal()">Cancel</button>
+    </div>
+  </div>
+
+  <script>
+    let isPremium = false; 
+    
+    const COLOR_DIFF_THRESHOLD = 60;   
+    const PIXEL_COUNT_THRESHOLD = 60;  
+    
+    const screens = { home: document.getElementById('homeScreen'), session: document.getElementById('sessionScreen'), history: document.getElementById('historyScreen') };
+    const premiumModal = document.getElementById('premiumModal'), exitModal = document.getElementById('exitModal'), modalText = document.getElementById('modalText');
+    const historyLock = document.getElementById('historyLock'), passesLock = document.getElementById('passesLock'), passesBlocker = document.getElementById('passesBlocker'), passesInput = document.getElementById('passesInput');
+    const sessionNameLock = document.getElementById('sessionNameLock'), sessionNameBlocker = document.getElementById('sessionNameBlocker'), sessionNameInput = document.getElementById('sessionNameInput');
+    const homeBadge = document.getElementById('homePremiumBadge'), sessionBadge = document.getElementById('sessionPremiumBadge');
+    
+    const video = document.getElementById('sourceVideo'), procCanvas = document.getElementById('processingCanvas'), procCtx = procCanvas.getContext('2d', { willReadFrequently: true });
+    
+    let cameraStream = null, animFrameId = null, audioCtx = null;
+    let state = 'IDLE', startTime = 0, prevZoneData = null, countdownTimeout = null, isCancelled = false;
+    let targetPasses = 1, currentPassCount = 0, sessionRunNumber = 1, gateCooldownEnd = 0;
+    
+    let currentRunId = null;
+    let currentRunDomId = null;
+    
+    // Core Session Grouping Variables
+    let currentSessionId = Date.now();
+    let currentSessionDate = new Date().toLocaleString();
+
+    const ZONE_PERCENT = 0.15;
+    const ZONE_WIDTH = Math.round(procCanvas.width * ZONE_PERCENT);
+    const ZONE_X = Math.floor((procCanvas.width - ZONE_WIDTH) / 2);
+
+    function navTo(screenName) {
+      if (screenName !== 'session' && cameraStream) stopCamera();
+      Object.values(screens).forEach(s => s.classList.remove('active'));
+      screens[screenName].classList.add('active');
+      if (screenName === 'session') startCamera();
+      else if (screenName === 'history') loadHistory();
+    }
+
+    function handleHistoryNav() { isPremium ? navTo('history') : showPremiumModal('Saved Device History'); }
+
+    function handleSessionBack() {
+      if (isPremium || sessionRunNumber === 1) navTo('home');
+      else exitModal.style.display = 'flex';
+    }
+
+    function hideExitModal() { exitModal.style.display = 'none'; }
+
+    function forceExit() {
+      hideExitModal();
+      sessionRunNumber = 1;
+      document.getElementById('sessionLog').innerHTML = ''; 
+      resetGate();
+      navTo('home');
+    }
+
+    function showPremiumModal(featureName) {
+      modalText.textContent = `Unlock Pro to access ${featureName}, remove ads, and track unlimited workouts permanently.`;
+      premiumModal.style.display = 'flex';
+    }
+    function hidePremiumModal() { premiumModal.style.display = 'none'; }
+
+    function togglePremiumTest() {
+      isPremium = !isPremium;
+      updatePremiumUI();
+      alert(`Developer Mode: Premium is now ${isPremium ? 'ON' : 'OFF'}`);
+    }
+
+    function mockPurchase() {
+      isPremium = true;
+      updatePremiumUI();
+      hidePremiumModal(); hideExitModal();
+      alert("Purchase Successful! Pro Unlocked.");
+    }
+
+    function updatePremiumUI() {
+      if (isPremium) {
+        historyLock.style.display = 'none'; passesLock.style.display = 'none'; passesBlocker.style.display = 'none'; passesInput.removeAttribute('readonly');
+        sessionNameLock.style.display = 'none'; sessionNameBlocker.style.display = 'none'; sessionNameInput.removeAttribute('readonly');
+        homeBadge.style.display = 'block'; sessionBadge.style.display = 'block';
+      } else {
+        historyLock.style.display = 'inline'; passesLock.style.display = 'inline'; passesBlocker.style.display = 'block'; passesInput.setAttribute('readonly', true); passesInput.value = 1; 
+        sessionNameLock.style.display = 'inline'; sessionNameBlocker.style.display = 'block'; sessionNameInput.setAttribute('readonly', true);
+        homeBadge.style.display = 'none'; sessionBadge.style.display = 'none';
+      }
+    }
+    updatePremiumUI();
+
+    function attemptDeleteRun(runId, domId) {
+      if (!isPremium) {
+        showPremiumModal('Delete Runs');
+        return;
+      }
+      const el = document.getElementById(domId);
+      if (el) el.remove();
+      
+      let runs = JSON.parse(localStorage.getItem('sprintHistory') || '[]');
+      runs = runs.filter(r => r.id !== runId);
+      localStorage.setItem('sprintHistory', JSON.stringify(runs));
+    }
+    
+    function deleteSession(sessionId) {
+      if (confirm("Are you sure you want to delete this entire session and all its runs?")) {
+        let runs = JSON.parse(localStorage.getItem('sprintHistory') || '[]');
+        // Filter out all runs that share this session ID
+        runs = runs.filter(r => (r.sessionId || r.date) != sessionId);
+        localStorage.setItem('sprintHistory', JSON.stringify(runs));
+        loadHistory(); 
+      }
+    }
+
+    function saveRunToDevice(passes, finalTime, runNum, runId) {
+      if (!isPremium) return; 
+      const sName = sessionNameInput.value || 'Running Session';
+      const runs = JSON.parse(localStorage.getItem('sprintHistory') || '[]');
+      
+      runs.unshift({ 
+        id: runId, 
+        sessionId: currentSessionId,
+        sessionName: sName,
+        sessionDate: currentSessionDate,
+        passes, 
+        time: finalTime, 
+        runNumber: runNum 
+      }); 
+      
+      localStorage.setItem('sprintHistory', JSON.stringify(runs));
+    }
+
+    function loadHistory() {
+      const container = document.getElementById('historyContainer');
+      const runs = JSON.parse(localStorage.getItem('sprintHistory') || '[]');
+      if (runs.length === 0) { container.innerHTML = '<div id="noHistoryMsg">No runs saved yet. Go sprint!</div>'; return; }
+
+      const sessionsMap = new Map();
+      runs.forEach(run => {
+        const sId = run.sessionId || run.date;
+        if (!sessionsMap.has(sId)) {
+          sessionsMap.set(sId, {
+            sessionName: run.sessionName || 'Running Session',
+            sessionDate: run.sessionDate || run.date,
+            runs: []
+          });
+        }
+        sessionsMap.get(sId).runs.push(run);
+      });
+
+      let html = '';
+      sessionsMap.forEach((sessionData, sId) => {
+        let runsHtml = sessionData.runs.map(r => `
+          <div class="history-run-item">
+            <span class="run-num">Run ${r.runNumber || 1}</span>
+            <span class="run-passes">${r.passes} Pass${r.passes > 1 ? 'es' : ''}</span>
+            <span class="run-time">${parseFloat(r.time).toFixed(3)}s</span>
+          </div>
+        `).join('');
+
+        html += `
+          <div class="history-card">
+            <div class="history-card-header">
+              <div class="history-session-info">
+                <div class="history-session-name">${sessionData.sessionName}</div>
+                <div class="history-date">${sessionData.sessionDate}</div>
+              </div>
+              <button class="delete-session-btn" onclick="deleteSession('${sId}')">🗑️</button>
+            </div>
+            <div class="history-runs-list">
+              ${runsHtml}
+            </div>
+          </div>
+        `;
+      });
+
+      container.innerHTML = html;
+    }
+
+    function startCamera() {
+      navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment', width: { ideal: 640 }, height: { ideal: 480 } }, audio: false })
+      .then(stream => { cameraStream = stream; video.srcObject = stream; video.play(); resetGate(); animFrameId = requestAnimationFrame(mainLoop); })
+      .catch(err => alert("Camera Error: " + err.message));
+    }
+
+    function stopCamera() {
+      if (cameraStream) { cameraStream.getTracks().forEach(track => track.stop()); cameraStream = null; }
+      if (animFrameId) { cancelAnimationFrame(animFrameId); animFrameId = null; }
+      video.srcObject = null;
+    }
+
+    function playBeep(freq, dur, type = 'sine') {
+      try {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
+        osc.type = type; osc.frequency.value = freq;
+        gain.gain.setValueAtTime(1.0, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + dur);
+        osc.connect(gain); gain.connect(audioCtx.destination);
+        osc.start(); osc.stop(audioCtx.currentTime + dur);
+      } catch (e) {}
+    }
+
+    function logSessionUI(textLeft, textRight, cssClass) {
+      if (!currentRunDomId) return;
+      const runBlock = document.getElementById(currentRunDomId);
+      if (!runBlock) return;
+      const div = document.createElement('div');
+      div.className = `log-item ${cssClass}`;
+      div.innerHTML = `<span>${textLeft}</span> <span>${textRight}</span>`;
+      runBlock.appendChild(div);
+    }
+
+    function sleep(ms) { return new Promise(r => { countdownTimeout = setTimeout(r, ms); }); }
+
+    function resetGate() {
+      isCancelled = true;
+      clearTimeout(countdownTimeout);
+      
+      if (state !== 'FINISHED' && state !== 'IDLE' && currentRunDomId) {
+        const el = document.getElementById(currentRunDomId);
+        if (el) el.remove();
+      }
+
+      state = 'IDLE'; prevZoneData = null; currentPassCount = 0; gateCooldownEnd = 0;
+      
+      document.getElementById('statusBadge').textContent = 'READY'; document.getElementById('statusBadge').style.color = '#fff';
+      document.getElementById('timerDisplay').textContent = '0.000s'; document.getElementById('timerDisplay').style.color = '#fff';
+      document.getElementById('gateOverlay').className = '';
+
+      document.getElementById('startBtn').disabled = false;
+      document.getElementById('startBtn').textContent = sessionRunNumber > 1 ? 'NEXT RUN' : 'START';
+      document.getElementById('delayInput').disabled = false;
+    }
+
+    function mainLoop() {
+      animFrameId = requestAnimationFrame(mainLoop);
+      if(video.videoWidth === 0) return; 
+
+      procCtx.drawImage(video, 0, 0, procCanvas.width, procCanvas.height);
+      const currentZoneData = procCtx.getImageData(ZONE_X, 0, ZONE_WIDTH, procCanvas.height);
+
+      if (state === 'RUNNING') {
+        const elapsed = (performance.now() - startTime) / 1000;
+        document.getElementById('timerDisplay').textContent = elapsed.toFixed(2) + 's';
+
+        if (elapsed > 1.0) {
+          if (elapsed < gateCooldownEnd) { prevZoneData = new Uint8ClampedArray(currentZoneData.data); return; }
+          if (prevZoneData) {
+            let changedPixels = 0;
+            const currentPixels = currentZoneData.data;
+            for (let i = 0; i < currentPixels.length; i += 16) {
+              const diff = Math.abs(currentPixels[i] - prevZoneData[i]) + Math.abs(currentPixels[i+1] - prevZoneData[i+1]) + Math.abs(currentPixels[i+2] - prevZoneData[i+2]);
+              if (diff > COLOR_DIFF_THRESHOLD) changedPixels++;
+            }
+            if (changedPixels > PIXEL_COUNT_THRESHOLD) handleGateCross(elapsed);
+          }
+          prevZoneData = new Uint8ClampedArray(currentZoneData.data);
+        }
+      }
+    }
+
+    function handleGateCross(elapsed) {
+      currentPassCount++;
+      const overlay = document.getElementById('gateOverlay');
+
+      if (currentPassCount < targetPasses) {
+        playBeep(800, 0.2, 'square');
+        overlay.className = 'triggered-lap';
+        setTimeout(() => overlay.className = '', 400);
+        logSessionUI(`Pass ${currentPassCount}`, `${elapsed.toFixed(3)}s`, 'log-lap');
+        gateCooldownEnd = elapsed + 1.5; 
+      } else {
+        state = 'FINISHED';
+        playBeep(1200, 0.6, 'triangle'); 
+        document.getElementById('statusBadge').textContent = 'FINISHED!'; document.getElementById('statusBadge').style.color = '#34c759';
+        document.getElementById('timerDisplay').textContent = elapsed.toFixed(3) + 's'; document.getElementById('timerDisplay').style.color = '#34c759';
+        overlay.className = 'triggered-finish';
+
+        logSessionUI(`FINAL TIME`, `${elapsed.toFixed(3)}s`, 'log-final');
+        
+        const delBtn = document.getElementById(`del-${currentRunId}`);
+        if(delBtn) delBtn.style.display = 'block';
+
+        saveRunToDevice(targetPasses, elapsed.toFixed(3), sessionRunNumber, currentRunId);
+        
+        sessionRunNumber++;
+        document.getElementById('startBtn').disabled = false;
+        document.getElementById('startBtn').textContent = 'NEXT RUN';
+      }
+    }
+
+    async function startSequence() {
+      isCancelled = false;
+      if (!document.fullscreenElement && document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(()=>{});
+
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      if (audioCtx.state === 'suspended') await audioCtx.resume();
+
+      document.getElementById('startBtn').disabled = true; document.getElementById('delayInput').disabled = true;
+      targetPasses = isPremium ? (parseInt(passesInput.value, 10) || 1) : 1;
+      currentPassCount = 0; gateCooldownEnd = 0;
+      
+      document.getElementById('gateOverlay').className = '';
+      document.getElementById('timerDisplay').style.color = '#ffffff';
+
+      currentRunId = Date.now();
+      currentRunDomId = `run-${currentRunId}`;
+      const runBlock = document.createElement('div');
+      runBlock.className = 'run-block';
+      runBlock.id = currentRunDomId;
+      
+      const delBtn = document.createElement('button');
+      delBtn.className = 'delete-run-btn';
+      delBtn.id = `del-${currentRunId}`;
+      delBtn.innerHTML = '🗑️';
+      const capturedId = currentRunId;
+      const capturedDomId = currentRunDomId;
+      delBtn.onclick = () => attemptDeleteRun(capturedId, capturedDomId);
+      
+      runBlock.appendChild(delBtn);
+      document.getElementById('sessionLog').prepend(runBlock);
+
+      logSessionUI(`Run ${sessionRunNumber}`, `${targetPasses} Pass(es)`, 'log-header');
+
+      const delaySeconds = parseInt(document.getElementById('delayInput').value, 10) || 10;
+      state = 'DELAY';
+
+      for (let i = delaySeconds; i > 0; i--) {
+        if (isCancelled) return;
+        document.getElementById('statusBadge').textContent = 'WALK TO START'; document.getElementById('statusBadge').style.color = '#ff9500';
+        document.getElementById('timerDisplay').textContent = `${i}s`;
+        await sleep(1000);
+      }
+
+      state = 'COUNTDOWN';
+      for (let count = 3; count >= 1; count--) {
+        if (isCancelled) return;
+        document.getElementById('statusBadge').textContent = 'GET SET'; document.getElementById('statusBadge').style.color = '#ffcc00';
+        document.getElementById('timerDisplay').textContent = count;
+        playBeep(520, 0.25);
+        await sleep(1000);
+      }
+
+      if (isCancelled) return;
+      document.getElementById('statusBadge').textContent = 'SPRINT!'; document.getElementById('statusBadge').style.color = '#34c759';
+      document.getElementById('timerDisplay').textContent = 'GO!';
+      playBeep(1040, 0.5);
+
+      state = 'RUNNING'; startTime = performance.now(); prevZoneData = null;
+    }
+
+    document.getElementById('startBtn').addEventListener('click', () => { if (state === 'IDLE' || state === 'FINISHED') startSequence(); });
+    document.getElementById('resetBtn').addEventListener('click', resetGate);
+    
+    document.getElementById('newSessionBtn').addEventListener('click', () => {
+      sessionRunNumber = 1;
+      currentSessionId = Date.now();
+      currentSessionDate = new Date().toLocaleString();
+      document.getElementById('sessionLog').innerHTML = ''; 
+      sessionNameInput.value = 'Running Session';
+      resetGate();
+    });
+
+  </script>
+</body>
+</html>
