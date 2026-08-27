@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- Background -->
+  <rect width="512" height="512" rx="64" fill="#0a0a0a"/>
+  
+  <!-- Left Gate Pillar -->
+  <rect x="88" y="100" width="48" height="16" rx="4" fill="#ffffff"/>
+  <rect x="100" y="116" width="24" height="280" fill="#ffffff"/>
+  <rect x="80" y="396" width="64" height="16" rx="4" fill="#ffffff"/>
+  
+  <!-- Right Gate Pillar -->
+  <rect x="376" y="100" width="48" height="16" rx="4" fill="#ffffff"/>
+  <rect x="388" y="116" width="24" height="280" fill="#ffffff"/>
+  <rect x="368" y="396" width="64" height="16" rx="4" fill="#ffffff"/>
+  
+  <!-- Dashed Laser Beams -->
+  <line x1="124" y1="190" x2="388" y2="190" stroke="#ffffff" stroke-width="6" stroke-dasharray="16 12"/>
+  <line x1="124" y1="320" x2="388" y2="320" stroke="#ffffff" stroke-width="6" stroke-dasharray="16 12"/>
+  
+  <!-- Center Target / Reticle -->
+  <circle cx="256" cy="256" r="36" fill="none" stroke="#ffffff" stroke-width="8"/>
+  <circle cx="256" cy="256" r="14" fill="#ffffff"/>
+</svg>
