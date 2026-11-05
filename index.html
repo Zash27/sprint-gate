@@ -183,10 +183,6 @@
   </style>
 </head>
 <body>
-  <button id="shareBtn" class="share-btn" type="button">
-  🔗 Share Sprint Gate
-</button>
-
   <canvas id="processingCanvas" width="160" height="120" style="display:none;"></canvas>
 
   <div id="homeScreen" class="screen active">
@@ -194,6 +190,9 @@
     <div class="premium-badge" id="homePremiumBadge">PRO</div>
     
     <button class="home-btn btn-primary" onclick="navTo('session')">Start Session</button>
+      <button id="shareBtn" class="share-btn" type="button">
+  🔗 Share Sprint Gate
+</button>
     <button class="home-btn btn-secondary" onclick="handleHistoryNav()">
       View Saved Times <span class="lock-icon" id="historyLock">🔒</span>
     </button>
